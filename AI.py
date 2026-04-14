@@ -4,7 +4,7 @@ from aiogram import Bot, Dispatcher, types, F
 from openai import AsyncOpenAI
 
 # 1. Sozlamalar
-TOKEN = "TELEGRAM_BOT_TOKEN_SHU_YERGA"
+TOKEN = "8778676243:AAFhlhEcm91mnWntTO0etF0MF2-QNyHaAAc"
 BASE_URL = "https://vsegpt.ru" # Yoki boshqa bepul API provider manzili
 API_KEY = "API_KEY_SHU_YERGA"
 
