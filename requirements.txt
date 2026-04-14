@@ -1,4 +1,4 @@
 aiogram
-g4f
+g4f[all]
 curl_cffi
 aiohttp
