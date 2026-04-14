@@ -1,87 +1,60 @@
-import os
 import asyncio
 import logging
-from aiohttp import web
 from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import CommandStart
-from g4f.client import AsyncClient
-import g4f
+from openai import AsyncOpenAI
 
-# --- SOZLAMALAR ---
-# MUHIM: Agar Conflict xatosi ketavermasa, @BotFather orqali yangi token oling!
-TOKEN = "8778676243:AAFhlhEcm91mnWntTO0etF0MF2-QNyHaAAc"
+# 1. Sozlamalar
+TOKEN = "TELEGRAM_BOT_TOKEN_SHU_YERGA"
+BASE_URL = "https://vsegpt.ru" # Yoki boshqa bepul API provider manzili
+API_KEY = "API_KEY_SHU_YERGA"
 
+# 2. Obyektlarni yaratish
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
-client = AsyncClient()
+client = AsyncOpenAI(api_key=API_KEY, base_url=BASE_URL)
 
-# Xatolarni terminalda ko'rish uchun sozlama
 logging.basicConfig(level=logging.INFO)
 
-# --- RENDER/SERVER PORT UCHUN (Health Check) ---
-async def handle(request):
-    return web.Response(text="AI Bot is running!")
-
-async def start_web_server():
-    app = web.Application()
-    app.router.add_get("/", handle)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    port = int(os.getenv("PORT", 8080))
-    site = web.TCPSite(runner, '0.0.0.0', port)
-    await site.start()
-    logging.info(f"Veb-server {port}-portda ishga tushdi.")
-
-# --- BOT HANDLERLARI ---
-@dp.message(CommandStart())
+# /start komandasi
+@dp.message(F.text == "/start")
 async def start_cmd(message: types.Message):
-    await message.answer(f"Salom {message.from_user.full_name}! 👋 Men tayyorman. Savolingizni bering!")
+    await message.answer("Salom! Men AI botman. Savolingizni yuboring.")
 
+# Asosiy AI chat funksiyasi
 @dp.message(F.text)
 async def ai_chat(message: types.Message):
-    # Foydalanuvchi kutib turishi uchun xabar
     wait_msg = await message.answer("🤖 O'ylayapman...")
     
-    try:
-        # 'gpt-4o' hozirda g4f kutubxonasida eng barqaror modallardan biri
-        response = await client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": message.text}],
-        )
-        
-        answer = response.choices[0].message.content
+    # Sinab ko'rish uchun modellar ro'yxati (provayderingizda borlarini yozing)
+    models = ["gpt-4o", "gpt-4-turbo", "claude-3-haiku", "llama-3-70b"]
+    
+    success = False
+    for model_name in models:
+        try:
+            logging.info(f"Sinalmoqda: {model_name}")
+            response = await client.chat.completions.create(
+                model=model_name,
+                messages=[{"role": "user", "content": message.text}],
+            )
+            answer = response.choices[0].message.content
+            
+            if answer:
+                await wait_msg.edit_text(answer)
+                success = True
+                break 
+        except Exception as e:
+            logging.error(f"{model_name} xatosi: {e}")
+            continue
 
-        if answer and len(answer) > 0:
-            await wait_msg.edit_text(answer)
-        else:
-            raise Exception("AI bo'sh javob qaytardi (Provayder xatosi).")
+    if not success:
+        await wait_msg.edit_text("❌ Hozirda barcha serverlar band. Keyinroq urinib ko'ring.")
 
-    except Exception as e:
-        # Terminalda aniq xatolikni ko'rish (MUHIM!)
-        logging.error(f"AI XATOLIK TAFSILOTI: {str(e)}")
-        
-        # Foydalanuvchiga tushunarli xato xabari
-        await wait_msg.edit_text("❌ Hozirda bepul AI serverlari band. Iltimos, 1 daqiqadan so'ng qayta urinib ko'ring.")
-
-# --- ASOSIY ISHGA TUSHIRISH ---
+# Botni ishga tushirish
 async def main():
-    # 1. Web serverni yurgizish (Render.com uchun)
-    await start_web_server()
-
-    # 2. Conflict (to'qnashuv)ni oldini olish:
-    # Eski ulanishlarni uzish va navbatda qolib ketgan xabarlarni o'chirib yuborish
-    logging.info("Eski sessiyalar tozalanmoqda...")
-    await bot.delete_webhook(drop_pending_updates=True)
-
-    # 3. Botni ishga tushirish
-    logging.info("Bot polling rejimida muvaffaqiyatli ishga tushdi.")
-    try:
-        await dp.start_polling(bot)
-    finally:
-        await bot.session.close()
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
-    except (KeyboardInterrupt, SystemExit):
-        logging.info("Bot qo'lda to'xtatildi.")
+    except KeyboardInterrupt:
+        print("Bot to'xtatildi")
