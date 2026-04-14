@@ -5,7 +5,7 @@ from aiogram.filters import CommandStart
 from g4f.client import AsyncClient # Tekin AI provayderi
 
 # Bot tokeningizni bura yozing
-TOKEN = "8428517451:AAH1A11KYoi50VcZLyYhmrAhBNbhSpxdHWQ"
+TOKEN = "8778676243:AAFhlhEcm91mnWntTO0etF0MF2-QNyHaAAc"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
